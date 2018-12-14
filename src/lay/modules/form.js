@@ -73,32 +73,58 @@ layui.define('layer', function(exports){
   //初始赋值
   Form.prototype.val = function(filter, object){
     var that = this
-    ,formElem = $(ELEM + '[lay-filter="' + filter +'"]');
-    formElem.each(function(index, item){
-      var itemFrom = $(this);
-      layui.each(object, function(key, value){
-        var itemElem = itemFrom.find('[name="'+ key +'"]')
-        ,type;
-        
-        //如果对应的表单不存在，则不执行
-        if(!itemElem[0]) return;
-        type = itemElem[0].type;
-        
-        //如果为复选框
-        if(type === 'checkbox'){
-          itemElem[0].checked = value;
-        } else if(type === 'radio') { //如果为单选框
-          itemElem.each(function(){
-            if(this.value === value ){
-              this.checked = true
-            }     
-          });
-        } else { //其它类型的表单
-          itemElem.val(value);
-        }
+    ,formElem = $(ELEM + '[lay-filter="' + filter +'"]')
+    ,formData = {};
+    if(typeof object === 'object'&& object){
+      formElem.each(function(index, item){
+        var itemFrom = $(this);
+        layui.each(object, function(key, value){
+          var itemElem = itemFrom.find('[name="'+ key +'"]')
+          ,type;
+
+          //如果对应的表单不存在，则不执行
+          if(!itemElem[0]) return;
+          type = itemElem[0].type;
+
+          //如果为复选框
+          if(type === 'checkbox'){
+            itemElem[0].checked = value;
+          } else if(type === 'radio') { //如果为单选框
+            itemElem.each(function(){
+              if(this.value === value ){
+                this.checked = true
+              }     
+            });
+          } else { //其它类型的表单
+            itemElem.val(value);
+          }
+        });
       });
-    });
-    form.render(null, filter);
+      form.render(null, filter);
+    }else{
+      formElem.each(function(index, item){
+        var itemFrom = $(this);
+        var fieldElem = itemFrom.find('input,select,textarea'); //获取所有表单域
+        var nameIndex = {}; //数组 name 索引
+        layui.each(fieldElem, function(_, item){
+          item.name = (item.name || '').replace(/^\s*|\s*&/, '');
+
+          if(!item.name) return;
+
+          //用于支持数组 name
+          if(/^.*\[\]$/.test(item.name)){
+            var key = item.name.match(/^(.*)\[\]$/g)[0];
+            nameIndex[key] = nameIndex[key] | 0;
+            item.name = item.name.replace(/^(.*)\[\]$/, '$1['+ (nameIndex[key]++) +']');
+          }
+
+          if(/^checkbox|radio$/.test(item.type) && !item.checked) return;      
+          formData[item.name] = item.value;
+        });
+        return false;
+      });
+      return formData;
+    }
   };
   
   //表单控件渲染
